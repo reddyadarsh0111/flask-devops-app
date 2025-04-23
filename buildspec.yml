@@ -7,15 +7,18 @@ phases:
     commands:
       - echo Installing dependencies...
       - pip install -r requirements.txt
+
   build:
     commands:
-      - echo Build phase: No actual build needed
+      - echo Build phase complete. No Docker build inside CodeBuild for now.
+
   post_build:
     commands:
-      - echo Build completed on `date`
-artifacts:
-  files:
-    - app.py
-    - requirements.txt
-    - Dockerfile
-    - buildspec.yml
+      - echo Starting deployment to EC2...
+      - chmod 400 adarsh-key.pem
+      - scp -i adarsh-key.pem -o StrictHostKeyChecking=no app.py requirements.txt Dockerfile ubuntu@18.188.49.168:/home/ubuntu/
+      - ssh -i adarsh-key.pem -o StrictHostKeyChecking=no ubuntu@18.188.49.168 << 'EOF'
+          docker rm -f student-app || true
+          docker build -t student-app /home/ubuntu/
+          docker run -d -p 80:5000 --name student-app student-app
+        EOF
